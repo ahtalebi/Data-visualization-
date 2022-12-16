@@ -1,0 +1,274 @@
+---
+title: "DaVisu_Talebi"
+author: "Amir_TALEBI"
+date: "2022-11-25"
+output: html_document
+---
+
+```{r library}
+library(tidyverse)
+```
+
+```{r data}
+co2_emission <- read.csv("data/CO2_emission.csv", header=TRUE, stringsAsFactors=FALSE)
+world_popul <- read.csv("data/world_population.csv", header=TRUE)
+death_airPolution <- read.csv("data/death-rates-from-air-pollution.csv", header=TRUE)
+```
+
+```{r}
+ggplot(world_popul, aes(x=X2015.Population,y=X2010.Population,colour=Continent))+
+  geom_point(size=3)
+```
+
+```{r}
+###co2_emission
+#class(co2_emission)
+#str(co2_emission)
+#co2_emission[1,1]
+#co2_emission[c(1,5,7,9),1:5]
+#colnames(co2_emission)
+#co2_emission$X1999
+#co2_emission[,c('X1990','X1992')] 
+#ggplot(data = co2_emission, aes(x = X1990, y = country_code, na.rm = TRUE)) +
+ # geom_point(alpha = 1)
+
+
+library(ggplot2)
+library(gifski)
+library(gganimate)
+ 
+# Make 2 basic states and concatenate them:
+a <- data.frame(group=c("A","B","C"), values=c(3,2,4), frame=rep('a',3))
+b <- data.frame(group=c("A","B","C"), values=c(5,3,7), frame=rep('b',3))
+data <- rbind(a,b)  
+ 
+# Basic barplot:
+ggplot(a, aes(x=group, y=values, fill=group)) + 
+  geom_bar(stat='identity')
+ 
+# Make a ggplot, but add frame=year: one image per year
+p <- ggplot(data, aes(x=group, y=values, fill=group)) + 
+  geom_bar(stat='identity') +
+  theme_bw() +
+  # gganimate specific bits:
+  transition_states(
+    frame,
+    transition_length = 2,
+    state_length = 1
+  ) +
+  ease_aes('sine-in-out')
+
+# Save at gif:
+animate(p, duration = 5, fps = 20, width = 200, height = 200, renderer = gifski_renderer())
+
+anim_save("288-animated-barplot-transition.gif")
+
+```
+
+
+
+
+
+
+```{r}
+ggplot(death_airPolution) +
+  geom_point(aes(x = Year, y= Air.pollution..total...deaths.per.100.000.), size=3.0) 
+  theme_bw() +
+  theme(axis.title = element_text(size=rel(1.5)))			
+```
+
+
+```{r}
+library(ggplot2)
+library(rnaturalearth)
+euro_map <- rnaturalearth::ne_countries(scale = 110, 
+                                        returnclass = 'sf', 
+                                        continent = "Europe")
+euro_map
+euro_map |> 
+  ggplot() +
+  geom_sf()
+
+
+
+
+library(ggplot2)
+library(dplyr)
+require(maps)
+require(viridis)
+
+
+# Some EU Contries
+some.eu.countries <- c(
+  "Portugal", "Spain", "France", "Switzerland", "Germany",
+  "Austria", "Belgium")
+
+# Retrievethe map data
+some.eu.maps <- map_data("world", region = some.eu.countries)
+
+# Compute the centroid as the mean longitude and lattitude
+# Used as label coordinate for country's names
+some.eu.maps |>
+  ggplot() +
+  geom_sf(aes(fill = co2_emission$X1990),
+          colour = "white") +
+  coord_sf(xlim = c(-15, 35),
+           ylim = c(32, 72.5)) +
+  guides(fill = guide_legend(title = "ok"))
+
+```
+
+
+```{r}
+#  https://rpubs.com/haginta/709479
+
+library(tidyverse)
+library(gganimate)
+library(gifski)
+library(readr)
+
+gdp_clean <- subset(co2_emission, !is.na(Region))
+gdp_long <- gdp_clean %>% 
+  mutate_at(vars(contains("X")),as.numeric) %>% 
+  gather(year,CO2_emissions,5:10)
+write_csv(gdp_long, "gdp_ready.csv")
+gdp_ready <- read_csv("gdp_ready.csv")
+gdp_ready
+
+
+gdp_set <- gdp_ready %>%
+  group_by(year) %>%
+  mutate(rank = rank(-CO2_emissions), 
+  gdp_rel = CO2_emissions/CO2_emissions[rank==1],
+  gdp_lbl = paste0(" ",round(CO2_emissions/1e1))) %>%
+  group_by(Country) %>% 
+   filter(rank <=10) %>%
+  ungroup()
+
+static_plot <- ggplot(gdp_set, aes(rank, group = Country)) +  
+  geom_tile(aes(y = CO2_emissions/2,
+                height = CO2_emissions, fill = Region,
+                width = 0.9), alpha = 0.8, color = NA) +
+  geom_text(aes(y = 0, label = paste(Country, " ")), vjust = 0.2, hjust = 1) +
+  geom_text(aes(y=CO2_emissions,label = gdp_lbl, hjust=0)) +
+  geom_text(aes(x=30, y=max(CO2_emissions) , label = as.factor(year)), vjust = 0.2, alpha = 0.5,  col = "gray", size = 20) +
+  coord_flip(clip = "off", expand = FALSE) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_x_reverse() +
+  scale_fill_discrete(guide = guide_legend(title.theme = element_text(
+      size = 20), label.theme = element_text(size = 15))) +
+  theme(axis.line=element_blank(),
+        axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        panel.grid.major.x = element_line( size=.1, color="grey" ),
+        panel.grid.minor.x = element_line( size=.1, color="grey" ),
+        plot.title=element_text(size=25, hjust=0, face="bold", colour="black", vjust=-1),
+        plot.subtitle=element_text(size=18, hjust=1, face="italic", color="grey"),
+        plot.caption =element_text(size=14, hjust=1, face="italic", color="grey"),
+        plot.background=element_blank(),
+       plot.margin = margin(2,2, 2, 4, "cm"))
+
+animated <- static_plot + transition_states(year,transition_length = 3, state_length = 0, wrap = FALSE) +
+  view_follow(fixed_x = TRUE)  +
+  ease_aes('linear')+
+    enter_fade()+
+    exit_fade() +
+  labs(title = 'Most CO2 emission, 1990-1995',  
+       #subtitle  =  "GDP in Billions USD (constant 2010)",
+       caption  = "Data Source: Kaggle?")
+animate(animated, 150, fps = 10, end_pause = 30, renderer = gifski_renderer("anim_gdp.gif"))
+```
+
+
+
+
+```{r}
+check_forregion <- co2_emission |>
+  group_by(Region, X1990) 
+check_forregion |>
+  ggplot(aes(x = Region, y = sqrt(X1990), fill=Region)) +
+  geom_violin() +
+    geom_point(position = position_jitterdodge(dodge.width = 0.9),
+             alpha = 0.5,
+             # don't need dots in legend
+             show.legend = FALSE) +
+  coord_flip()+
+  theme(legend.position = "none")+
+  ggtitle("Year = 1990") + 
+  labs(x="Region", y="Metric tone per capita (scaled with squared root)")
+#ggsave("horizontal_violin_plots_ggplot2_R.jpeg")
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+check_forregion <- co2_emission |>
+  group_by(Region) |>
+  gather(Description, value, X1990:X1993) |>
+  ggplot(aes(x = Region, y= value, fill = Description)) + 
+  geom_point()
+
+
+```
+
+
+```{r}
+library(dplyr)
+N = 30 # top n rows 
+check_for_1990 <- co2_emission |>
+  group_by(Country) |>
+  filter(!any(is.na(X1990)))
+
+check_for_1990[1:N,] |> group_by(Country, Region) |> arrange(desc(X1990), na.rm =TRUE) |> 
+ggplot(aes(as.factor(Region))) +
+  geom_point(aes(y=X1990), colour="red") +   theme(axis.text.x =     element_text(angle=25, vjust=.5, hjust=1)) +
+  labs(y= "Year = 1990 ", x = "Region", title = "co2_emmision metric tons / capita") ## -> sp
+
+```
+
+
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(gganimate)
+library(gifski)
+library(readr)
+library(ggridges)
+
+co_clean <- subset(co2_emission, !is.na(Region))
+co_long <- co_clean %>% 
+  mutate_at(vars(contains("X")),as.numeric) %>% 
+  gather(year,CO2_emissions,5:34)
+
+
+co_set <- co_long %>%
+  group_by(year, Region)
+co_set
+
+static_plot <- ggplot(co_set, aes(x = year, y = Region, height = CO2_emissions)) +
+  geom_density_ridges() +
+    theme(legend.position = "none")
+```
+
+
+
+data visulaizatio is for humans and should be easy to read and inspect.
+do not scale the data , scale the exes.
+Look at the ggplot lecture, snake plot. use density plot and 
+ridep.
+
+##### use   ctrl + shift + c   for un/commenting
+<!-- library(ggplot2) -->
+<!-- d1 <- data.frame(totsum = colSums(co2_emission[c(5:34)], na.rm=TRUE)) -->
+<!-- x <- data.frame(years = c(1990:2019)) -->
+<!-- d1 -->
+<!-- byregion <- co2_emission %>% group_by(Region) -->
