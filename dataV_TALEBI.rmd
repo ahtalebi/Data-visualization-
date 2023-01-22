@@ -1,260 +1,229 @@
 ---
-title: "DaVisu_Talebi"
-author: "Amir_TALEBI"
-date: "2022-11-25"
-output: html_document
+title: "Contribution of countries in CO<sub>2</sub> emission and death due to air pollution"
+author: 
+  name: "Amir TALEBI"
+output:
+  html_document: 
+    theme: cerulean
+    fig_caption: true
+    code_download: true
+    code_folding: hide
+date: '`r format(Sys.time(), "%d %B, %Y")`'
 ---
 
-```{r library}
-library(tidyverse)
-library(ggplot2)
-library(highcharter) 
-library(gganimate)
-library(gifski)
-library(readr)
-library(forecast)
-library(dplyr)
-library(janitor)
-library(reshape)
-library(forcats)
-
-##### due to the kind of dataset(s), I have used some special libraries to get my plots ######
+```{css, echo=FALSE}
+p {
+  font-size: 20px;
+  color: red;
+  font-weight: bold;
+}
 ```
 
-```{r data}
+
+```{css, echo=FALSE}
+h1, h4 {
+  text-align: center;
+  color: #71C0E2;
+  font-weight: bold;
+}
+```
+
+<style>
+body {
+text-align: justify}
+</style>
+
+#  ABSTRACT:
+### In this project we have studied the contribution of countries in CO<sub>2</sub> emission from 1990 to 2019. On the other hand, death rate due to total air pollution factor has been studied. Overally, death rate due to total air contamination (including indoor air pollution, Outdoor particulate matter and Outdoor ozone pollution) has decreased during the years. However, based on this data-set the global CO<sub>2</sub> emission has been fluctuating, and is not decreasing monotonically. Our linear fit model predicts a negative rate for the number of death until 2022. Finally, based on the results,  eastern European countries show a higher rate of death as a consequence of total air pollution.  
+
+<hr style="border:2px solid black">
+
+### Libraries:
+```{r library, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(highcharter)
+library(forecast)
+library(dplyr)
+library(rmarkdown)
+library(cowplot)
+```
+
+### Corresponding data for this project are as follows:
+* [CO<sub>2</sub> emissions around the world](https://www.kaggle.com/datasets/koustavghosh149/co2-emission-around-the-world)
+* [Death due to air pollution](https://www.kaggle.com/datasets/akshat0giri/death-due-to-air-pollution-19902017)
+
+### What is metric ton per capita: 
+ * 1 metric ton = 1,000 kilograms 
+ * CO<sub>2</sub> emission per capita is measured as the total amount of carbon dioxide emitted by a country as a consequence of all relevant human activities (production and consumption), divided by the population of that country. 
+ 
+
+```{r data, message = FALSE, warning = FALSE, include = FALSE}
 co2_emission <- read.csv("data/CO2_emission.csv")
 death_airPolution <- read.csv("data/death-rates-from-air-pollution.csv")
 popu_world <- read.csv("data/world_population.csv")
 ```
 
+
+
 ```{r}
-data_without_na <- co2_emission %>% 
-  replace(is.na(.), 0) 
-df <- data_without_na |>
-        select(starts_with("X"))
-tot_emission <- colSums(df)
-year <- c(1990:2019)
-custom_clr <- c("#619CFF")
-custom_dsh <- c("ShortDashDotDot")
-my_df <- data.frame(year, tot_emission)
-hc <- hchart(my_df,'line', hcaes(x = year, y = tot_emission),
-       color = custom_clr, dashStyle = custom_dsh) |>
-  hc_yAxis(title = list(text = "Total emission")) |>  
-  hc_xAxis(title = list(text = "Year")) |>
-  hc_title(
-    text = "Interactive plot for Global Co2 emission (metric tons per capita)",
-    margin = 20, 
-    align = "center",
-    style = list(color = "#FF0000", useHTML = TRUE)
-  )
+# to create a pageable table
+paged_table(co2_emission, options = list(rows.print = 7, cols.print = 5)) 
+paged_table(death_airPolution, options = list(rows.print = 7, cols.print = 5))
+```
+
+
+
+# Visualization of our data
+
+```{r setup, fig.cap="Fig. (1): Global CO<sub>2</sub> emission and death rate from 1990-2017", fig.align = 'left', warning=FALSE, message=FALSE}
+
+df1 <- aggregate(death_airPolution["Air.pollution..total...deaths.per.100.000."], by=death_airPolution["Year"], sum)
+data_without_na <- replace(co2_emission, is.na(co2_emission), 0)
+df2 <- data_without_na |>
+  select(starts_with("X"))
+totEmission <- colSums(df2)
+trial_df2 <- as.data.frame(totEmission)
+data_new2 <- slice(trial_df2, 1:(n() - 2))                    # to drop 2018 and 2019 rows.
+data_new3 <- rownames_to_column(data_new2, var = "Year")
+data_new3$Year<-gsub("X","",as.character(data_new3$Year))     # to get rid of "X" in the beginning of Year column.
+total <- merge(data_new3, df1, by="Year")                     # Finally, this will merge two data sets.     
+colnames(total)[3] <- "totAirPollt"
+
+hc <- highchart() |>
+        hc_yAxis_multiples(
+        list(
+          title=list(text="CO2 emissions (metric ton per capita)"), lineWidth = 3, opposite = FALSE),
+          list(
+        title=list(text="Total death due to air pollution"), lineWidth = 3, opposite = TRUE)
+        ) |>
+        hc_xAxis( 
+        categories = total$Year, labels = list(rotation = -60, style = list(fontSize = "1.4vh")), 
+        plotBands = list(list(color = "#ffcccb", from = 3, to = 5, label = list(text = "")))
+        ) |>
+        hc_add_series(
+          data = total$totEmission, yAxis = 0, name = "Total CO<sub>2</sub> emission", color = '#fbb339'
+            ) |>
+        hc_add_series(
+          data = total$totAirPollt,  color = "#2e6844", yAxis = 1, name = "Total death due to air Pollution"
+          ) |> 
+        hc_title(text = "Dual y-axis chart")
 hc
 ```
 
-```{r}
-df = subset(co2_emission, select = -c(country_code, Indicator.Name)) 
-dfmelted <- melt(df, id_vars=c('Country', 'Region'), value_vars=c('X1990': 'X2019'), na.rm = TRUE)
-colnames(dfmelted)[3] = "Year"
-colnames(dfmelted)[4] = "co2_Capita"
-dfmelted$Year<-gsub("X","", as.character(dfmelted$Year))
+###  Based on data the global rate of death due to air pollution (total deaths per 100,000) has been decreasing, Fig. (1). Additionally, total CO<sub>2</sub> does not follow a monotonic trend and during last three decades has been oscillating.
 
-data_new <- dfmelted |>
-  filter(Country %in% c("France", "Germany", "Luxembourg", "Belgium"),
-         Year >= 2000  , Year <= 2019) |>
-  select(Year, Country, co2_Capita)
+```{r, fig.cap="Fig. (2): Comparative study of Carbon-dioxide emission among four countries", fig.align = 'left', warning=FALSE, message=FALSE}
+
+df = subset(co2_emission, select = -c(country_code, Indicator.Name))
+na.omit(df) |>
+  pivot_longer(cols = -c('Country', 'Region'), names_to = "Year", values_to = 'co2_Capita') -> dflonger
+dflonger$Year<-gsub("X","", as.character(dflonger$Year))
+
+data_new <- dflonger |>
+  filter(
+    Country %in% c("France", "Germany", "Luxembourg", "Belgium"),
+    Year >= 2000  , Year <= 2019
+    ) |>
+    select(Year, Country, co2_Capita)
 
 ggplot(data_new, aes(x = co2_Capita, y = Year, fill = Country)) +
   geom_bar(stat = "identity", width = 0.7) + 
-  labs(title = "Stacked bar plots for 4 countries", 
-       subtitle = "", 
-       caption = "", 
-       x = "Co2 emission (metric tons per capita)"
-       ) +  
-  scale_fill_brewer(palette = "Set3") + 
-  theme(axis.title.y = element_blank())
+  labs(
+    title = "Share of global CO2 emission by 4 countries", 
+    x = "CO2 emission (metric tons per capita)"
+    ) +  
+  scale_fill_brewer(palette = "Set3") 
 ```
 
+### We have narrowed down our analysis of CO<sub>2</sub> emission to four neighboring countries. Among all these years, Luxembourg had the most contribution in CO<sub>2</sub> emission. The country is still far from reaching its contribution for the reducing of greenhouse gas emissions, [based on the news](https://today.rtl.lu/news/luxembourg/a/1184731.html). This is mostly owing to petrol and fuel tourism in the country. 
 
-```{r}
-# I need to do a bit data wrangling to join two tables (Hope its doable), then need also cleaning and joining.
-names(co2_emission)[2] <- "Code"
-dfnew = subset(co2_emission, select = -c(Region, Indicator.Name)) 
-df_long <- melt(data=dfnew, 
-                id.vars = c('Country', 'Code'),
-                variable_name =  "Year", na.rm = TRUE)
-colnames(df_long)[4] = "co2_"
-df_long$Year<-gsub("X","",as.character(df_long$Year))
-```
+```{r, fig.cap="Fig. (3): Linear fit and prediction for next 5 years", fig.align = 'left', warning=FALSE, message=FALSE}
 
-
-```{r}
 death_airPolution |>
   group_by(Year) |>
   summarise(total = sum(Air.pollution..total...deaths.per.100.000.)) -> tot1
 GData <- ts(tot1[,2], start = 1990, end = 2017, frequency = 1)
-
-fit <- tslm (GData~trend)
-fcast <- forecast (fit, h=5)
-plot (fcast, xlab ="Year",
-ylab ="Total death due to air pollution (in 100,000)",
- col.main ="blue", col = 'red')
-lines (fitted (fit))
+modeel<- tslm (GData~trend)
+fcast <- forecast (modeel, h=5, level = c(8,95))
+plot (
+  fcast, xlab ="Year", ylab ="Total death due to air pollution", main ="Time series linear model",
+ col.main ="black", col = 'red' , lwd=3.5
+ ) 
+lines (fitted (modeel), col = 'blue', lwd=1.5)
+legend(
+  'topright',inset=0.05,c("Data","Linear Fit"),lty=1,col=c("red","blue"), lwd=c(3.5,1.5)
+  )
+text(1995, 18500, labels = "Slope: -372.4", pos = 4, cex = 1.1, col = "dodgerblue4")
 ```
 
-
-```{r}
-```
+### For the sake of completeness, we have made a time-series linear model fit to our data for the death rate due to total air pollutants. Based on the model, the trend continues with the same negative rate until 2022. 
 
 
-```{r}
-cleandpop <- death_airPolution[!(death_airPolution$Code == ""), ]  ## to remove Oceania with no value for the Code column.
-data_mod<- cleandpop %>%                                     
-  group_by(Year, Country) %>%
-  filter(Year == 2017) %>% 
-  top_n(10)
-  
-##filter(between(Year, 2013, 2014)) 
+```{r, fig.cap="Fig. (4): Violin plots panel for the total CO<sub>2</sub> emission at 1990 and 2000.", fig.align = 'left',  warning=FALSE, message=FALSE, fig.width=15, fig.height=5}
+violplot <- co2_emission |>
+  na.omit() 
 
-colnames(data_mod)[4] = "AirPollTotDeathPer100k"
-colnames(data_mod)[5] = "InAirPollDeathPer100k"
-colnames(data_mod)[6] = "OutParticMatterDeathPer100k"
-colnames(data_mod)[7] = "OutOzonePollDeathPer100k"
-
-data_mod
-
-ggplot(data_mod,aes(x=Country,y=Year, fill=AirPollTotDeathPer100k)) +
-  geom_bar(position = "stack",stat="identity") + 
-  coord_flip()
-
-```
-
-
-```{r}
-
-df = subset(co2_emission, select = -c(Code, Indicator.Name)) 
-dfmelted <- melt(df, id_vars=c('Country', 'Region'), value_vars=c('X1990': 'X2019'),na.rm = TRUE)
-colnames(dfmelted)[3] = "Year"
-colnames(dfmelted)[4] = "co2_Capita"
-dfmelted$Year<-gsub("X","",as.character(dfmelted$Year))
-
-dec_intake_formatted = dfmelted |>
-  group_by(Year) |>
-  mutate(rank = rank(-co2_Capita),
-         Value_rel = co2_Capita/co2_Capita[rank==1],
-         Value_lbl = paste0(" ",co2_Capita)) |>
-  group_by(Country) |>
-  filter(rank <= 10)
-
-anim <- ggplot(dec_intake_formatted, aes(rank, group = Country)) +  
-  geom_tile(aes(y = co2_Capita/2,
-                height = co2_Capita, fill = Region,
-                width = 0.9), alpha = 0.8, color = NA) +
-  geom_text(aes(y = 0, label = paste(Country, " ")), vjust = 0.2, hjust = 1, size =7) +
-  geom_text(aes(y=co2_Capita,label = Value_lbl, hjust=0), size = 8) +
-  coord_flip(clip = "off", expand = TRUE) +
-  scale_x_reverse() +
-  scale_fill_discrete(guide = guide_legend(title.theme = element_text(
-      size = 20), label.theme = element_text(size = 15))) +
-  theme(axis.line=element_blank(),
-        axis.text.x=element_blank(),
-        axis.text.y=element_blank(),
-        axis.ticks=element_blank(),
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank(),
-        panel.background=element_blank(),
-        panel.border=element_blank(),
-        panel.grid.major=element_blank(),
-        panel.grid.minor=element_blank(),
-        panel.grid.major.x = element_line( size=.1, color="grey" ),
-        panel.grid.minor.x = element_line( size=.1, color="grey" ),
-        plot.title=element_text(size=25, hjust=0.5, face="bold", colour="red", vjust=-1),
-        plot.subtitle=element_text(size=18, hjust=0.5, face="italic", color="red"),
-        plot.caption =element_text(size=14, hjust=0.5, face="italic", color="red"),
-        plot.background=element_blank(),
-       plot.margin = margin(1,4, 1, 8, "cm")) +
-  transition_states(Year, transition_length = 4, state_length = 1) +
-  labs(title = 'Top 10 countries for co2 emission. Year: {closest_state}',  
-       caption  = "")
-
-
-
-library(gifski)
-library(png)
-animate(anim, nframes = 350,fps = 15,  width = 1200, height = 1000, 
-        renderer = gifski_renderer("gganim.gif"))
-```
-
-
-
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-
-```{r}
-check_forregion <- co2_emission |>
-  group_by(Region, X1990)
-check_forregion |>
-  ggplot(aes(x = reorder(Region, -X1990), y = X1990, fill=Region)) + 
-  geom_violin() + 
-  stat_summary(fun = "mean",
+v1 <- ggplot(violplot, aes(x=reorder(Region,X1990, median), 
+             y=X1990, fill=Region)) +
+  geom_violin(alpha=1.5, fill = "#30A9DC", colour = "#2429B3")+
+  stat_summary(fun = "median",
                geom = "crossbar", 
                width = 0.5,
-               colour = "red") +
-    geom_point(position = position_jitterdodge(dodge.width = 0.9),
-             alpha = 0.5,
-             show.legend = FALSE) +
+               colour = "red"
+                 ) +
+  geom_point(position = position_jitterdodge(dodge.width = 0.9), alpha = 0.5) +
   coord_flip()+
-  theme(legend.position = "none") +
-  ggtitle("Year = 1990") + 
-  labs(x=" ", y="Metric tone per capita") +
-  scale_y_continuous(trans = "sqrt")  
-## ggsave("horizontal_violin_plots_ggplot2_R.jpeg")
-# we can use fct_reorder or reorder to give order to the violins by ordering the # Violin plot by mean CO2 emission values.
- 
-```
+  theme(legend.position = "none", text=element_text(size=15))+
+  ggtitle("Year = 1990") +
+  labs(x= "", y="Metric tone per capita")+
+  scale_y_continuous(trans = "sqrt")
 
-```{r}
-check_forregion <- co2_emission |>
-  group_by(Region, X2019)
-check_forregion |>
-  ggplot(aes(x = reorder(Region, -X2019), y = X2019, fill=Region)) + 
-  geom_violin() + 
-  stat_summary(fun = "mean",
+v2 <- ggplot(violplot, aes(x=reorder(Region,X2000, median), 
+             y=X2000, fill=Region)) +
+  geom_violin(alpha=1.5, fill = "#30A9DC", colour = "#2429B3")+
+  stat_summary(fun = "median",
                geom = "crossbar", 
                width = 0.5,
-               colour = "red") +
-    geom_point(position = position_jitterdodge(dodge.width = 0.9),
-             alpha = 0.5,
-             show.legend = FALSE) +
-  coord_flip()+
-  theme(legend.position = "none") +
-  ggtitle("Year = 2019") + 
-  labs(x=" ", y="Metric tone per capita") +
-  scale_y_continuous(trans = "sqrt")  
-## ggsave("horizontal_violin_plots_ggplot2_R.jpeg")
-# we can use fct_reorder or reorder to give order to the violins by ordering the # Violin plot by mean CO2 emission values.
+               colour = "red"
+                 ) +
+  geom_point(position = position_jitterdodge(dodge.width = 0.9), alpha = 0.5) +
+  coord_flip() +
+  theme(legend.position = "none", text=element_text(size=15)) +
+  ggtitle("Year = 2000") +
+  labs(x= "", y="Metric tone per capita") +
+  scale_y_continuous(trans = "sqrt")
 
+plot_grid(v1, v2, align = "hv", nrow = 1)
 ```
 
+### As we have a limited amount of data points for each region, we have also superimposed data points in order to give a better representation of the distribution of the data.  Violin plots are sorted in terms of median or second quartile (Q2). The red vertical lines show the location of Q2 in ascending order. A relative comparison between 1990 and 2007 shows that the highest/lowest median CO<sub>2</sub> emission still belongs to North American countries and Sub-Saharan Africa, respectively. However, for some other years the ordering of the regions based on Q2 may change. We have scaled x-axis values. This kind of scaling is not impacting the value of CO<sub>2</sub> emission data and it is indeed  the square root of the x-axis values. We have used the same color (blue) for all regions for easier comparison and less complexity.
 
-```{r}
-N = 30 # top n rows 
-check_for_1990 <- co2_emission |>
-  group_by(Country) |>
-  filter(!any(is.na(X1990)))
 
-check_for_1990[1:N,] |> 
-  group_by(Country, Region) |> 
-  arrange(desc(X1990), na.rm =TRUE) |> 
-  ggplot(aes(as.factor(Region))) +
-  geom_point(aes(y=X1990), colour="red") +   
-  theme(axis.text.x = element_text(angle=25, vjust=.5, hjust=1)) +
-  labs(y= "Year = 1990 ", x = "Region", title = "co2_emmision metric tons / capita") ## -> sp
+```{r, fig.cap="Fig. (5): map plot for 26 countries", fig.align = 'left',  warning=FALSE, message=FALSE}
+maniz <- data.frame(death_airPolution) |>
+  select(Country, Year, Air.pollution..total...deaths.per.100.000.) |>
+  group_by(Country, Air.pollution..total...deaths.per.100.000.) |>
+  filter(Year==1990)
+my_maniz <- maniz[,-2]
+colnames(my_maniz)[1] <- "region"
+colnames(my_maniz)[2] <- "Airpollution_totaldeaths"
+my_vec <- c("Austria", "Belgium", "Czech Republic", "Denmark", "France", "Germany", "Hungary", "Ireland", "Luxembourg", "Netherlands", "Poland", "Slovakia", "Switzerland", "Romania", "Slovenia", "Spain", "Portugal", "Italy", "Ukraine", "Norway", "Sweden", "Finland", "Greece", "Bulgaria", "Liechtenstein", "Estonia")
+my_maniz <- my_maniz[is.element(my_maniz$region, my_vec),]
 
+map_thisdata <- map_data("world") ##ggplot2
+new_mapdata <- left_join(map_thisdata, my_maniz, by="region")
+new_mapdata <- new_mapdata |>
+  filter(!is.na(new_mapdata$Airpollution_totaldeaths))
+
+target <- ggplot(new_mapdata, aes(x = long, y = lat, group = group)) +
+  geom_polygon(aes(fill = Airpollution_totaldeaths), color="white") +
+  theme_bw() +
+  coord_map("bonne",  lat0 = 50)  + 
+  ggtitle("Total Death due to Air Pollution in 100000") 
+
+target 
 ```
+
+### Finally, due to the special type of our dataset and the values for each country, we have presented a map plot for 26 countries from Europe continent. Based on that, the rate of death due to total air pollution is higher at eastern part with respect to countries from western (and Southern) parts. This is an encouraging sign for those countries to invest more money in this sector and reduce the amount of air pollutants. 
+
+$$\\[1in]$$
