@@ -63,15 +63,11 @@ death_airPolution <- read.csv("data/death-rates-from-air-pollution.csv")
 popu_world <- read.csv("data/world_population.csv")
 ```
 
-
-
 ```{r}
 # to create a pageable table
 paged_table(co2_emission, options = list(rows.print = 7, cols.print = 5)) 
 paged_table(death_airPolution, options = list(rows.print = 7, cols.print = 5))
 ```
-
-
 
 # Visualization of our data
 
@@ -110,7 +106,8 @@ hc <- highchart() |>
 hc
 ```
 
-###  Based on data the global rate of death due to air pollution (total deaths per 100,000) has been decreasing, Fig. (1). Additionally, total CO<sub>2</sub> does not follow a monotonic trend and during last three decades has been oscillating.
+###  Based on data the global rate of death due to air pollution (total deaths per 100,000) has been decreasing, Fig. (1). Additionally, total CO<sub>2</sub> does not follow a monotonic trend and during last three decades has been oscillating. As the shaded area shows, the amount of [ Carbon Dioxide emission dropped in 1990 decade ](https://www.nytimes.com/1991/12/08/world/carbon-dioxide-emissions-dropped-in-1990-ecologists-say.html), reaching to a minimum at 1994. The reason is attributed to a sharp collapse in fuel use and economies of Soviet Union and countries in Eastern Europe.
+
 
 ```{r, fig.cap="Fig. (2): Comparative study of Carbon-dioxide emission among four countries", fig.align = 'left', warning=FALSE, message=FALSE}
 
