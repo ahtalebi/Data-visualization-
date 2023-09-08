@@ -34,7 +34,7 @@ text-align: justify}
 </style>
 
 #  ABSTRACT:
-### In this project we have studied the contribution of countries in CO<sub>2</sub> emission from 1990 to 2019. On the other hand, death rate due to total air pollution factor has been studied. Overally, death rate due to total air contamination (including indoor air pollution, Outdoor particulate matter and Outdoor ozone pollution) has decreased during the years. However, based on this data-set the global CO<sub>2</sub> emission has been fluctuating, and is not decreasing monotonically. Our linear fit model predicts a negative rate for the number of death until 2022. Finally, based on the results,  eastern European countries show a higher rate of death as a consequence of total air pollution.  
+### We have studied the contribution of countries in CO<sub>2</sub> emission from 1990 to 2019. Additionally, the death rate due to total air pollution factor has been studied. Overally, death rate due to total air contamination (including indoor air pollution, Outdoor particulate matter and Outdoor ozone pollution) has decreased during the years. However, based on this data-set the global CO<sub>2</sub> emission has been fluctuating, and is not decreasing monotonically. Our linear fit model predicts a negative rate for the number of death until 2022 (Without including the effect of Covid 19). Finally, based on the results,  eastern European countries show a higher rate of death as a consequence of total air pollution.  
 
 <hr style="border:2px solid black">
 
@@ -60,7 +60,6 @@ library(cowplot)
 ```{r data, message = FALSE, warning = FALSE, include = FALSE}
 co2_emission <- read.csv("data/CO2_emission.csv")
 death_airPolution <- read.csv("data/death-rates-from-air-pollution.csv")
-popu_world <- read.csv("data/world_population.csv")
 ```
 
 ```{r}
