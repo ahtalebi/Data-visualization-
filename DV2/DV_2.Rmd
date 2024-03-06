@@ -42,25 +42,60 @@ sort(colnames(dataset))
 
 
 ```{r}
+# Print column names line by line
+for (col_name in colnames(dataset)) {
+  print(col_name)
+}
+
+```
+
+```{r}
+# Print the type of each column
+sapply(dataset, class)
+
+```
+
+
+```{r}
+
+# Check for NaN values in each column and replace them
+for (col in colnames(dataset)) {
+  if (class(dataset[[col]]) == "integer" | class(dataset[[col]]) == "character") {
+    # Replace NaN with mode for integer and character columns
+    mode_val <- names(sort(-table(dataset[[col]])))[1]
+    dataset[[col]][is.na(dataset[[col]])] <- mode_val
+  } else if (class(dataset[[col]]) == "numeric") {
+    # Replace NaN with mean for numeric columns
+    mean_val <- mean(dataset[[col]], na.rm = TRUE)
+    dataset[[col]][is.na(dataset[[col]])] <- mean_val
+  }
+}
+
+# Print the updated dataset
+print(dataset)
+
 
 ```
 
 
 
 ```{r}
+# Check for NaN values in each column
+nan_count <- colSums(is.na(dataset))
+
+# Check for empty values in each column (for character columns)
+empty_count <- colSums(dataset == "")
+
+# Print the counts
+print("NaN counts:")
+print(nan_count)
+
+print("Empty counts:")
+print(empty_count)
 
 ```
 
-
-```{r}
-
-```
-
-
-
-```{r}
-
-```
+now, we are sure that there is no NaN or empty value in each column. 
 
 
 ```{r}
