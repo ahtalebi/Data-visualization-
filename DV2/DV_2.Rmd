@@ -1,3 +1,18 @@
+---
+title: "DV_2"
+author: "Amir_TALEBI"
+date: "2024-03-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r cars}
+
 dataset <- read.csv("/home/amir/Documents/goesto_Github/data_visulization_R/chip_dataset.csv", header = TRUE, sep=',')
 
 # Calculate percentage of missing values in each column
@@ -6,8 +21,9 @@ missing_percentages <- colMeans(is.na(dataset)) * 100
 # Print the percentage of missing values in each column
 print(missing_percentages)
 
+```
 
-## follow > https://www.kaggle.com/code/gap505/cpu-data-analysis
+```{r pressure, echo=FALSE}
 
 # Check the type of the dataset
 cat("Type of dataset:", class(dataset), "\n")
@@ -22,5 +38,66 @@ sort(colnames(dataset))
 
 
 
+```
 
 
+```{r}
+
+```
+
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
