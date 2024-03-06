@@ -100,10 +100,44 @@ now, we are sure that there is no NaN or empty value in each column.
 
 ```{r}
 
+# Find the numeric and integer columns
+numeric_integer_columns <- dataset[, sapply(dataset, function(x) is.numeric(x) || is.integer(x))]
+
+# Calculate the number of rows and columns for the plot grid
+num_cols <- ceiling(sqrt(ncol(numeric_integer_columns)))
+num_rows <- ceiling(ncol(numeric_integer_columns) / num_cols)
+
+# Set the plot layout
+par(mfrow = c(num_rows, num_cols))
+
+# Create a separate plot for each numeric and integer column
+for (col in colnames(numeric_integer_columns)) {
+  hist(numeric_integer_columns[[col]], main = col, xlab = "Value", col = "skyblue", border = "black")
+}
+
+
+
+
 ```
 
 
 ```{r}
+
+
+# Find the character columns
+character_columns <- dataset[, sapply(dataset, is.character)]
+
+# Create a separate pie chart for each character column
+for (col in colnames(character_columns)) {
+  # Reset the plot device
+  dev.new()
+  
+  # Count the frequency of each unique value in the column
+  value_counts <- table(character_columns[[col]])
+  
+  # Plot a pie chart
+  pie(value_counts, main = col)
+}
 
 ```
 
